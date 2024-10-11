@@ -274,17 +274,6 @@ ggsave('./deg/rat_volcano_mast.png', width = 4, height = 4)
 #### Genes are recorded in the vectors below
 
 
-mouse_deg <- mast_res$mouseEgg_v_mouseZygote$DESig
-rat_deg <- mast_rat$ratEgg_v_ratZygote$DESig
-
-mouse_deg_up <- row.names(subset(mouse_deg, Log2FC > log2(2) & fdr < 0.05))
-mouse_deg_down <- row.names(subset(mouse_deg, Log2FC < -log2(2) & fdr < 0.05))
-
-rat_deg_up <- row.names(subset(rat_deg, Log2FC > log2(2) & fdr < 0.05))
-rat_deg_down <- row.names(subset(rat_deg, Log2FC < -log2(2) & fdr < 0.05))
-
-
-
 
 #CP_Plots <- clusterProfilerPlots(DEG_ORA_expr_filt, dir = './enrichment/')
 
@@ -361,35 +350,16 @@ dev.off()
 
 
 
-sample_PCA(log(t(t(mouse_intron$unspliced[mouse_intron$genes,])/estimateSizeFactorsForMatrix(mouse_intron$spliced))+1), mouse$meta, umap =  T, dimension=2 ,main = "UMAP of Log Expression", labeling = F, point_size = 2, color_by = 'cellType', umap.config = list(n_neighbors = 15, min_dist = 0.5, metric='pearson'))
-ggsave(paste(output_dir,"_PCA_label.tiff", sep=''), units="in", width=5, height=4, dpi=300, compression = 'lzw')
-sample_PCA(log(t(t(rat_intron$unspliced[rat_intron$genes,])/estimateSizeFactorsForMatrix(rat_intron$spliced))+1), rat$meta, umap =  T, dimension=2 ,main = "UMAP of Log Expression", labeling = F, point_size = 2, color_by = 'cellType', umap.config = list(n_neighbors = 15, min_dist = 0.5, metric='pearson'))
-ggsave(paste(output_dir,"_PCA_label.tiff", sep=''), units="in", width=5, height=4, dpi=300, compression = 'lzw')
 
 
 
 ### SUPPA2
-{
+
 ## SUPPA2 results
 
 ## diffsplice parameters are abs(dPSI) > 0.2 and SUPPA2 pval < 0.05
-### AS of Nov 28th, total of 5430 genes have diff splice events in rat data and 6275 genes have splice events in mouse
-### total 358 sig diff splice in mouse, 82 genes sig diffsplice in rat
-### events by type:
-# mouse rat
-#SE 220 36 
-#MX 6 1
-#AL 4 4
-#AF 81  20
-#RI 11  2
-#A5 59  11
-#A3 64  12
 
-suppa_mouse_eve_res <- read.csv('./splicing/mouse/suppa/mouse_suppa_drimseq/suppa/diffsplice/per_local_event/MF-MU_local_diffsplice.dpsi', header = T, row.names = 1, sep = '\t')
-suppa_mouse_eve_res$gene_short_name <- sapply(row.names(suppa_mouse_eve_res), FUN = function(x){strsplit(x,"\\;")[[1]][1]})
-suppa_mouse_eve_res$event_type <- sapply(sapply(row.names(suppa_mouse_eve_res), FUN = function(x){strsplit(x,"\\;")[[1]][2]}), FUN = function(x){strsplit(x,"\\:")[[1]][1]})
-suppa_mouse_eve_res <- suppa_mouse_eve_res[suppa_mouse_eve_res[,1] != 'NaN',]
-suppa_mouse_eve_res$diff <- abs(suppa_mouse_eve_res[,1]) > 0.2 & suppa_mouse_eve_res[,2] < 0.05
+
 
 suppa_crc_iso_res <- read.csv('./dataset/salmon_splice/salmon/suppa/diffsplice/per_isoform/M-C_transcript_diffsplice.dpsi', header = T, row.names = 1, sep = '\t')
 suppa_crc_iso_res$gene_short_name <- sapply(row.names(suppa_crc_iso_res), FUN = function(x){strsplit(x,"\\;")[[1]][1]})
@@ -410,33 +380,6 @@ suppa_mouse_eve_ora <- lapply(unique(suppa_mouse_eve_res$event_type), FUN = func
     enrich_CP(diff_g, universe = sub_df$gene_short_name, organisms = 'mouse')
   }
 })
-names(suppa_mouse_eve_ora) <- unique(suppa_mouse_eve_res$event_type)
-suppa_mouse_eve_ora$all <- enrich_CP(do.call(c, lapply(unique(subset(suppa_mouse_eve_res, diff)$gene_short_name), FUN =function(x){strsplit(x, '_and_')[[1]]})), 
-                                     universe = do.call(c, lapply(unique(suppa_mouse_eve_res$gene_short_name), FUN =function(x){strsplit(x, '_and_')[[1]]})), 
-                                     organisms = 'mouse')
-
-
-suppa_rat_eve_res <- read.csv('./splicing/rat/suppa/rat_suppa_drimseq/suppa/diffsplice/per_local_event/RF-RU_local_diffsplice.dpsi', header = T, row.names = 1, sep = '\t')
-suppa_rat_eve_res$gene_short_name <- sapply(row.names(suppa_rat_eve_res), FUN = function(x){strsplit(x,"\\;")[[1]][1]})
-suppa_rat_eve_res$event_type <- sapply(sapply(row.names(suppa_rat_eve_res), FUN = function(x){strsplit(x,"\\;")[[1]][2]}), FUN = function(x){strsplit(x,"\\:")[[1]][1]})
-suppa_rat_eve_res <- suppa_rat_eve_res[suppa_rat_eve_res[,1] != 'NaN',]
-suppa_rat_eve_res$diff <- abs(suppa_rat_eve_res[,1]) > 0.2 & suppa_rat_eve_res[,2] < 0.05
-
-suppa_rat_iso_res <- read.csv('./splicing/rat/suppa/rat_suppa_drimseq/suppa/diffsplice/per_isoform/RF-RU_transcript_diffsplice.dpsi', header = T, row.names = 1, sep = '\t')
-suppa_rat_iso_res$gene_short_name <- sapply(row.names(suppa_rat_iso_res), FUN = function(x){strsplit(x,"\\;")[[1]][1]})
-suppa_rat_iso_res <- suppa_rat_eve_res[suppa_rat_iso_res[,1] != 'NaN',]
-suppa_rat_iso_res$diff <- abs(suppa_rat_iso_res[,1]) > 0.2 & suppa_rat_iso_res[,2] < 0.05
-
-suppa_rat_iso_ora <- enrich_CP(subset(suppa_rat_iso_res, diff)$gene_short_name, universe = suppa_rat_iso_res$gene_short_name, organisms = 'rat')
-suppa_rat_eve_ora <- lapply(unique(suppa_rat_eve_res$event_type), FUN = function(x){
-  sub_df <- subset(suppa_rat_eve_res, event_type == x)
-  diff_g = subset(sub_df, diff)$gene_short_name
-  if(length(diff_g) <= 2){
-    return(NULL)
-  }else{
-    enrich_CP(diff_g, universe = sub_df$gene_short_name, organisms = 'rat')
-  }
-})
 
 names(suppa_rat_eve_ora) <- unique(suppa_rat_eve_res$event_type)
 suppa_rat_eve_ora$all <- enrich_CP(do.call(c, lapply(unique(subset(suppa_rat_eve_res, diff)$gene_short_name), FUN =function(x){strsplit(x, '_and_')[[1]]}))
@@ -445,28 +388,9 @@ suppa_rat_eve_ora$all <- enrich_CP(do.call(c, lapply(unique(subset(suppa_rat_eve
 
 
 
-#Count genes
-length(unique(suppa_mouse_eve_res$gene_short_name))
-length(do.call(c, lapply(unique(subset(suppa_mouse_eve_res, local_MF.local_MU_p.val < 0.05 )$gene_short_name), FUN =function(x){strsplit(x, '_and_')[[1]]})))
-tapply(row.names(suppa_mouse_eve_res), suppa_mouse_eve_res$event_type, FUN =function(x){length(unique(subset(suppa_mouse_eve_res[x,], diff)$gene_short_name))})
-
-length(unique(suppa_rat_eve_res$gene_short_name))
-length(unique(subset(suppa_rat_eve_res, diff)$gene_short_name))
-tapply(row.names(suppa_rat_eve_res), suppa_rat_eve_res$event_type, FUN =function(x){length(unique(subset(suppa_rat_eve_res[x,], diff)$gene_short_name))})
-
-}
-
 
 
 ### DRIMSEQ/STAGER
-stager_rat <- read.csv('./dataset/salmon_splice/salmon/dexseq_dtu/results/stager/getAdjustedPValues.M-C.tsv', header = T,  sep = '\t')
-
-#stager_rat_ora1 <- enrich_CP(subset(stager_rat, gene < 0.05)$geneID, universe = stager_rat$geneID, organisms = 'rat')
-
-stager_mouse <- read.csv('./splicing/mouse/suppa/mouse_suppa_drimseq/dexseq_dtu/results/stager/getAdjustedPValues.MF-MU.tsv', header = T,  sep = '\t')
-
-#stager_mouse_ora1 <- enrich_CP(subset(stager_mouse, gdene < 0.05)$geneID, universe = stager_mouse$geneID, organisms = 'mouse')
-
 
 
 
@@ -489,77 +413,7 @@ crc_prop_diff <- data.frame(gene = crc_dtu$prop$groupID, transcript=crc_dtu$prop
 crc_prop_gene <- tapply(crc_prop_diff, crc_prop_diff$gene, FUN = function(x){sum(x$diff) > 0.5})
 crc_prop_gene <- names(crc_prop_gene[crc_prop_gene])
 print(length(intersect(crc_prop_gene, subset(dexseq_crc_stageR, gene < 0.05)$geneID)))
-stager_mouse_ora1 <- enrich_CP(intersect(crc_prop_gene, subset(dexseq_crc_stageR, gene < 0.05)$geneID), universe = dexseq_crc_stageR$geneID, organisms = 'human', classic = T, Msig = c('H', 'C3-TFT:GTRD', 'C3-TFT:TFT_Legacy'), alpha = 1, combine = T, simple_combine = T, full_combine = T)
 
-
-
-dotplot(stager_rat_ora$GO_BP_ora, showCategory=10, color='pvalue') +theme(axis.text.y = element_text(angle = 0, vjust = 0, hjust=0.5, size = 8), 
-                                                                          axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=0.5, size = 8), 
-                                                                          legend.text = element_text(size=8), legend.key.size = unit(1, 'cm'),  
-                                                                          legend.key.height = unit(0.3, 'cm'),legend.key.width = unit(0.3, 'cm'),
-                                                                          legend.title = element_text(size=8))+ggtitle('Rat DTU GO: BP')+ scale_fill_continuous(low="red", high="blue", name = 'pvalue', guide=guide_colorbar(reverse=TRUE), limits=c(0,0.002))+
-                                                                              scale_size(range=c(3,8), limits = c(5,220))
-ggsave('Rat_dex_dtu_GOBP.png', width = 4, height = 4.5)
-
-dotplot(stager_mouse_ora$GO_BP_ora, showCategory=10, color='pvalue') +theme(axis.text.y = element_text(angle = 0, vjust = 0.5, hjust=0.5, size = 8, colour = c( rep('black',4),rep('red', 6))), 
-                                                                    axis.text.x = element_text(angle = 30, vjust = 0.5, hjust=0.5, size = 8), 
-                                                                    legend.text = element_text(size=8), legend.key.size = unit(1, 'cm'),  
-                                                                    legend.key.height = unit(0.3, 'cm'),legend.key.width = unit(0.3, 'cm'),
-                                                                    legend.title = element_text(size=8))+ggtitle('Mouse DTU GO: BP')+
-                                                                    scale_fill_continuous(low="red", high="blue", name = 'pvalue', guide=guide_colorbar(reverse=TRUE), limits=c(0,0.002))+
-                                                                    scale_size(range=c(3,8), limits = c(5,220))
-ggsave('Mouse_dex_dtu_GOBP.png', width = 4, height = 4.5)
-
-
-View(subset(dexseq_mouse_stageR, gene < 0.05))
-
-table(tapply(subset(dexseq_mouse_stageR, gene < 0.05), subset(dexseq_mouse_stageR, gene < 0.05)$geneID, FUN = function(x){sum(x$transcript < 0.05)}))
-
-table(tapply(subset(dexseq_rat_stageR, gene < 0.05), subset(dexseq_rat_stageR, gene < 0.05)$geneID, FUN = function(x){sum(x$transcript < 0.05)}))
-
-
-
-dtu_deg_mouse <- list('Mouse Up DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)),
-                'Mouse Down DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC < -1)),
-                'Mouse DTU'= unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID))
-
-UpSet(make_comb_mat(dtu_deg_mouse)[1:2], comb_col = c('black'))
-UpSet(make_comb_mat(dtu_deg_rat)[1:2], comb_col = c('black'))
-
-"#CD534CFF"
-ggvenn(
-  dtu_deg_mouse, 
-  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF"),
-  stroke_size = 0.5, set_name_size = 3, text_size = 5, show_percentage = F
-)
-
-dtu_deg_mouse <- list('Mouse Up DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)),
-                      'Mouse Down DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC < -1)),
-                      'Mouse DTU'= unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID))
-dtu_deg_rat <- list('Rat Up DEG'= row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, fdr < 0.05 & Log2FC > 1)),
-                      'Rat Down DEG'= row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, fdr < 0.05 & Log2FC < -1)),
-                      'Rat DTU'= unique(subset(dexseq_rat_stageR, gene < 0.05)$geneID))
-
-"#CD534CFF"
-ggvenn(
-  dtu_deg_rat, 
-  fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF"),
-  stroke_size = 0.5, set_name_size = 3, text_size = 5, show_percentage = F
-)
-
-dtu_deg_mouse_ora_up <- enrich_CP(intersect(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)), unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID)),
-                                'mouse', universe = intersect(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), unique(dexseq_mouse_stageR$geneID)))
-dtu_deg_mouse_ora_down <- enrich_CP(intersect(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC < -1)), unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID)),
-                                  'mouse', universe = intersect(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), unique(dexseq_mouse_stageR$geneID)))
-
-dtu_deg_rat_ora_up <- enrich_CP(row.names(subset(mouse_intron_prop, qvalue < 0.05 & prop_diff > 0)), 'mouse', universe = row.names(mouse_intron_prop))
-dtu_deg_rat_ora_down <- enrich_CP(row.names(subset(mouse_intron_prop, qvalue < 0.05 & prop_diff < 0)), 'mouse', universe = row.names(mouse_intron_prop))
-
-
-
-
-plotProportions(mouse_drim$drim, gene_id = 'Anapc5', group_variable = "condition", plot_type = "ribbonplot")+theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size = 8))
-plotProportions(rat_drim$drim, gene_id = 'Msl3', group_variable = "condition", plot_type = "boxplot1")+theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=0.5, size = 8))
 
 
 # plot dexseq proportions
@@ -569,14 +423,6 @@ plotDEXSeqDTU(mouse_dtu$prop, 'Abi3bp', mouse_drim$samps, isProportion = T)
 
 
 
-
-
-
-
-print(length(unique(subset(stager_mouse, gene < 0.05)$geneID)))
-print(length(unique(stager_mouse$geneID)))
-print(length(unique(subset(stager_rat, gene < 0.05)$geneID)))
-print(length(unique(stager_rat$geneID)))
 
 ##Rmats results
 
@@ -648,138 +494,6 @@ utr_crc_sf_st25_gs <- enrich_CP(row.names(subset(crc_dapars_sf_st25$gene_res, di
                                 combine = T, classic = T, full_combine = T,
                                 Msig = c('H', 'C3-TFT:GTRD', 'C3-TFT:TFT_Legacy', 'NCG'))
 
-mouse_dapars_sf_long_300_st25 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_300_long_st25.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_long_300_st25$gene_res[mouse_dapars_sf_long_300_st25$gene_res$APA_dist <= 75,]$diff = F
-utr_mouse_sf_long_300_st25_gs_up <- enrich_CP(unique(subset(mouse_dapars_sf_long_300_st25$gene_res, diff & mean.diff > 0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_300_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_gs_long_300_st25_down <- enrich_CP(unique(subset(mouse_dapars_sf_long_300_st25$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_300_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_gs_long_300_st25_gs <- enrich_CP(unique(subset(mouse_dapars_sf_long_300_st25$gene_res, diff & abs(mean.diff) >= 0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_300_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-
-{"
-mouse_dapars_sf_nodiff <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_short_long_nodiff.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_min_long <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_min_long.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_utr_100 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_utr_100.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_utr_100_med <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_utr_100_median.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_utr_100_min_long_median <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_utr_100_min_long_median.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_min_long_median <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_min_long_median.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-
-mouse_dapars_sf_long_100 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_100_long.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_long_200 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_200_long.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_long_300 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_300_long.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-
-mouse_dapars_sf_long_300$gene_res[mouse_dapars_sf_long_300$gene_res$APA_dist == 100,]$diff = F
-mouse_dapars_sf_long_200$gene_res[mouse_dapars_sf_long_200$gene_res$APA_dist == 100,]$diff = F
-mouse_dapars_sf_long_100$gene_res[mouse_dapars_sf_long_100$gene_res$APA_dist == 100,]$diff = F
-
-mouse_dapars_sf$gene_res[mouse_dapars_sf$gene_res$APA_dist == 100,]$diff = F
-utr_mouse_sf_gs_long_100_down <- enrich_CP(unique(subset(mouse_dapars_sf_long_100$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_100$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_gs_long_200_down <- enrich_CP(unique(subset(mouse_dapars_sf_long_200$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_200$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_gs_long_300_down <- enrich_CP(unique(subset(mouse_dapars_sf_long_300$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_long_300$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-
-
-mouse_dapars_sf <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf$gene_res[mouse_dapars_sf$gene_res$APA_dist == 100,]$diff = F
-utr_mouse_sf_gs_up <- enrich_CP(unique(subset(mouse_dapars_sf$gene_res, diff & mean.diff > 0.2)$gene_short_names), universe = unique(mouse_dapars_sf$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_gs_down <- enrich_CP(unique(subset(mouse_dapars_sf$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-
-mouse_dapars_sf_long_100_st25 <- deg_utr('./apa/mouse_uniq_sfnorm_cov_0_100_long_st25.txt', mouse$ct$bio, c('mouseEgg', 'mouseZygote'), mouse$meta)
-mouse_dapars_sf_long_100_st25$gene_res[mouse_dapars_sf_long_100_st25$gene_res$APA_dist <= 75,]$diff = F
-
-
-
-utr_mouse_sf_utr_100_gs_up <- enrich_CP(unique(subset(mouse_dapars_sf_utr_100$gene_res, diff & mean.diff > 0.2)$gene_short_names), universe = unique(mouse_dapars_sf_utr_100$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_utr_100_gs_down <- enrich_CP(unique(subset(mouse_dapars_sf_utr_100$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_utr_100$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-utr_mouse_sf_utr_100_min_long_median_gs_up <- enrich_CP(unique(subset(mouse_dapars_sf_utr_100_min_long_median$gene_res, diff & mean.diff > 0.2)$gene_short_names), universe = unique(mouse_dapars_sf_utr_100_min_long_median$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_utr_100_min_long_median_gs_down <- enrich_CP(unique(subset(mouse_dapars_sf_utr_100_min_long_median$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_utr_100_min_long_median$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_min_long_gs_up <- enrich_CP(unique(subset(mouse_dapars_sf_min_long$gene_res, diff & mean.diff > 0.2)$gene_short_names), universe = unique(mouse_dapars_sf_min_long$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-utr_mouse_sf_min_long_gs_down <- enrich_CP(unique(subset(mouse_dapars_sf_min_long$gene_res, diff & mean.diff < -0.2)$gene_short_names), universe = unique(mouse_dapars_sf_min_long$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-  
-"}
-
-
-
-intersect(subset(mouse_dapars_sf_st25$gene_res, diff)$gene_short_names, subset(rat_dapars_sf_st25$gene_res, diff)$gene_short_names)
-intersect(subset(mouse_dapars_sf_long_300_st25$gene_res, diff)$gene_short_names, subset(rat_dapars_sf_long_300_st25$gene_res, diff)$gene_short_names)
-
-crc_dapars_sf_st25 <- enrich_CP(intersect(subset(mouse_dapars_sf_st25$gene_res, fdr < 0.05 & mean.diff < -0.1)$gene_short_names, subset(rat_dapars_sf_st25$gene_res, fdr < 0.05 & mean.diff < -0.1)$gene_short_names),
-          universe = intersect(mouse_dapars_sf_st25$gene_res$gene_short_names,rat_dapars_sf_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-both_utr_gs_up <- enrich_CP(intersect(subset(mouse_dapars_sf_st25$gene_res, fdr < 0.05 & mean.diff > 0.2)$gene_short_names, subset(rat_dapars_sf_st25$gene_res, fdr < 0.05 & mean.diff > 0.2)$gene_short_names),
-                              universe = intersect(mouse_dapars_sf_st25$gene_res$gene_short_names,rat_dapars_sf_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-both_utr_gs <- enrich_CP(intersect(subset(mouse_dapars_sf_st25$gene_res, fdr < 0.05 & abs(mean.diff) > 0.1)$gene_short_names, subset(rat_dapars_sf_st25$gene_res, fdr < 0.05 & abs(mean.diff) > 0.1)$gene_short_names),
-                              universe = intersect(mouse_dapars_sf_st25$gene_res$gene_short_names,rat_dapars_sf_st25$gene_res$gene_short_names), logFC = NULL, organisms = 'mouse')
-
-
-
-utr_deg_mouse <- list('Mouse Up DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > log2(2))),
-                      'Mouse Down DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC < -log2(2))),
-                        'Mouse Long UTR'= unique(subset(mouse_PAS_dist$PAS_motif, mean.diff > 0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),
-                      'Mouse Short UTR' =unique(subset(mouse_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name))
-
-utr_deg_rat <- list('Rat Up DEG'= row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, fdr < 0.05 & Log2FC > 1)),
-                      'Rat Down DEG'= row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, fdr < 0.05 & Log2FC < -1)),
-                      'Rat Long UTR'= unique(subset(rat_PAS_dist$PAS_motif, mean.diff > 0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),
-                      'Rat Short UTR' =unique(subset(rat_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name))
-
-png('utr_deg_mouse.png', width = 3, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(utr_deg_mouse)[1:4], comb_col = c('black', 'red', 'black','black'))
-dev.off()
-
-png('utr_deg_rat.png', width = 2.6, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(utr_deg_rat)[2:4], comb_col = c('black', 'black','black'))
-dev.off()
-
-setdiff(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)), subset(mouse_dapars_sf$gene_res, mean.diff < -0.1)$gene_short_names)
-
-
-setdiff(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)), subset(mouse_dapars_sf$gene_res, mean.diff < -0.1)$gene_short_names)
-
-
-
-mast_go_noployA_up <- enrich_CP(setdiff(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)), 
-                                subset(mouse_dapars_sf$gene_res, mean.diff < -0.2 & diff)$gene_short_names),
-                                universe = row.names(mast_res$mouseEgg_v_mouseZygote$DESig),
-                                logFC = sapply(setdiff(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), subset(mouse_dapars_sf$gene_res, mean.diff < -0.1)$gene_short_names), 
-                                FUN =function(x){mast_res$mouseEgg_v_mouseZygote$DESig[x,'Log2FC']}), 
-                                organisms = 'mouse',
-                                GSE = F)
-
-mast_go_short_utr_up <- enrich_CP(intersect(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 0.05)), 
-                                        subset(mouse_dapars_sf$gene_res, mean.diff < -0.05 & diff)$gene_short_names),
-                                universe = intersect(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), 
-                                                    mouse_dapars_sf$gene_res$gene_short_names),
-                                logFC = sapply(setdiff(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), subset(mouse_dapars_sf$gene_res, mean.diff < -0.1)$gene_short_names), 
-                                               FUN =function(x){mast_res$mouseEgg_v_mouseZygote$DESig[x,'Log2FC']}), 
-                                organisms = 'mouse',
-                                GSE = F)
-
-
-mast_gse_noployA <- gse_CP(setdiff(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, fdr < 0.05 & Log2FC > 1)), 
-                                         subset(mouse_dapars_sf$gene_res, mean.diff < -0.05)$gene_short_names),
-                                 logFC = sapply(setdiff(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), subset(mouse_dapars_sf$gene_res, mean.diff < -0.05)$gene_short_names), 
-                                                FUN =function(x){mast_res$mouseEgg_v_mouseZygote$DESig[x,'Log2FC']}), 
-                                 organisms = 'mouse',
-                                 GSE = T)
-
-mast_gse_rat <- gse_CP(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, fdr < 0.05 & abs(Log2FC) > 1)),
-                       logFC = sapply(row.names(mast_rat$ratEgg_v_ratZygote$DESig), FUN =function(x){mast_rat$ratEgg_v_ratZygote$DESig[x,'Log2FC']}), organisms = 'rat', GSE = T)
-
-
-rat_dapars_sf$pdui <- rat_dapars_sf$df[,grepl('PDUI', colnames(rat_dapars_sf$df))]
-colnames(rat_dapars_sf$pdui) <- colnames(rat_dapars_sf$long)
-rat_dapars_sf$pdui <- rat_dapars_sf$pdui[row.names(rat_dapars_sf$deg),]
-rat_dapars_sf$pdui <- t(apply(rat_dapars_sf$pdui, 1, FUN = function(x){x[is.na(x)] = mean(x, na.rm =T); x}))
-
-
-mouse_dapars_sf$pdui <- mouse_dapars_sf$df[,grepl('PDUI', colnames(mouse_dapars_sf$df))]
-colnames(mouse_dapars_sf$pdui) <- colnames(mouse_dapars_sf$long)
-mouse_dapars_sf$pdui <- mouse_dapars_sf$pdui[row.names(mouse_dapars_sf$deg),]
-mouse_dapars_sf_st25$pdui <- t(apply(mouse_dapars_sf_st25$pdui, 1, FUN = function(x){x[is.na(x)] = mean(x, na.rm =T); x}))
 
 
 
@@ -789,6 +503,7 @@ sample_PCA(log(rat_dapars_sf_st25$pdui_imp+1), rat$meta, umap =  T, dimension=2 
             theme(axis.text.y = element_text( size = 8), axis.title.x = element_text(size = 8),
           axis.text.x = element_text( size = 8) , axis.title.y = element_text(size = 8))+guides(color=FALSE)
 ggsave('rat_umap_DAP.png', units = 'in', dpi = 300, height = 2.5, width = 2.5)
+
 sample_PCA(log(mouse_dapars_sf_st25$pdui_imp+1), mouse$meta, umap =  T, dimension=2 ,
            main = "PDUI Umap", labeling = F, point_size = 2, color_by = 'cellType', 
            umap.config = list(n_neighbors = 28, min_dist = 0.4, metric='cosine'))+
@@ -836,102 +551,7 @@ cnetplot(clusterProfiler::simplify(utr_mouse_sf_st25_gs$GO_BP_ora, 0.6), 10, fol
   mouse_dapars_sf_st25$gene_res[x,]$mean.diff
 }), cex_label_gene = 0.3, cex_label_category = 1)
 
-#### Orthology
-utr_ortho <- list('Rat Long UTR'= row.names(subset(rat_dapars_sf_st25$gene_res, mean.diff > 0.2 & fdr < 0.05)),
-                      'Rat Short UTR' =row.names(subset(rat_dapars_sf_st25$gene_res, mean.diff < -0.2 & fdr < 0.05)),
-                      'Mouse Long UTR'= row.names(subset(mouse_dapars_sf_st25$gene_res, mean.diff > 0.2 & fdr < 0.05)),
-                      'Mouse Short UTR' =row.names(subset(m$gene_res,mean.diff < -0.2 & fdr < 0.05)))
 
-utr_ortho <- list('Rat Long UTR'= unique(subset(rat_PAS_dist$PAS_motif, mean.diff > 0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),
-                  'Rat Short UTR' =unique(subset(rat_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),
-                  'Mouse Long UTR'= unique(subset(mouse_PAS_dist$PAS_motif, mean.diff > 0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),
-                  'Mouse Short UTR' =unique(subset(mouse_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name))
-
-unique(subset(mouse_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name)
-
-png('utr_ortho.png', width = 3.6, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(utr_ortho)[2:5], comb_col = c('black'))
-dev.off()
-length(intersect(row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, abs(Log2FC) > log2(1.25) & fdr < 0.05)), row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, abs(Log2FC) > log2(1.25) & fdr < 0.05))))
-
-deg_ortho <- list('Rat Up DEG'= row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)),
-                  'Rat Down DEG' =row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC < -log2(1.25)  & fdr < 0.05)),
-                  'Mouse Up DEG'= row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)),
-                  'Mouse Down DEG' =row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC < -log2(1.25)  & fdr < 0.05)))
-
-mu_ru <- intersect(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)), row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)))
-md_ru <- intersect(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)), row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC < -log2(1.25) & fdr < 0.05)))
-mu_rd <- intersect(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC < -log2(1.25) & fdr < 0.05)), row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC > log2(1.25) & fdr < 0.05)))
-md_rd <- intersect(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, Log2FC < -log2(1.25) & fdr < 0.05)), row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, Log2FC < -log2(1.25) & fdr < 0.05)))
-m_r <- intersect(row.names(subset(mast_rat$ratEgg_v_ratZygote$DESig, abs(Log2FC) > log2(1.25) & fdr < 0.05)), row.names(subset(mast_res$mouseEgg_v_mouseZygote$DESig, abs(Log2FC) > log2(1.25) & fdr < 0.05)))
-
-m_r_state <- c(rep('Mouse Up / Rat Up', length(mu_ru)),rep('Mouse down / Rat Up', length(md_ru)),rep('Mouse up / Rat down', length(mu_rd)),rep('Mouse down / Rat down', length(md_rd)))
-
-names(m_r_state) <- c(mu_ru, md_ru,mu_rd,md_rd)
-
-mouse_rat_all_deg <- intersect(row.names(mast_rat$ratEgg_v_ratZygote$DESig), row.names(mast_res$mouseEgg_v_mouseZygote$DESig))
-
-deg_ortho_ora <- list('mu_ru' <- enrich_CP(mu_ru,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse'),
-                      'mu_rd'<- enrich_CP(mu_rd,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse'),
-                      'md_ru' <- enrich_CP(md_ru,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse'),
-                      'md_rd'<- enrich_CP(md_rd,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse'),
-                      'm_r'<- enrich_CP(md_rd,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse')
-)
-m_r_ora <- enrich_CP(m_r,universe = mouse_rat_all_deg, logFC = NULL, organisms = 'mouse')
-m_r_ora$combined <- m_r_ora$GO_BP_ora
-m_r_ora$combined@result <- rbind(m_r_ora$GO_BP_ora@result, m_r_ora$WKP_ora@result, m_r_ora$KEGG_ora@result, m_r_ora$REACT_ora@result)
-m_r_ora$combined@geneSets <- c(m_r_ora$GO_BP_ora@geneSets, m_r_ora$REACT_ora@geneSets,m_r_ora$KEGG_ora@geneSets, m_r_ora$WKP_ora@geneSets)
-m_r_ora_cnetplots <- custom_cnet_plot(m_r_ora$combined, category = c('R-MMU-1428517', 'R-MMU-927802', 'R-MMU-72172', 'R-MMU-72202', 'R-MMU-69620', 'R-MMU-72312', 'GO:0008380', 'GO:0002181', 'GO:0016574','R-MMU-4551638'),
-                         gene_color = sapply(mast_rat$ratEgg_v_ratZygote$DESig$features, FUN = function(x){mast_rat$ratEgg_v_ratZygote$DESig[x,'Log2FC']}), 
-                         gene_color2 = sapply(mast_res$mouseEgg_v_mouseZygote$DESig$features, FUN = function(x){mast_res$mouseEgg_v_mouseZygote$DESig[x,'Log2FC']}), 
-                         layout = 'fr', color_cat_pval = F)
-
-ggsave(plot = m_r_ora_cnetplots$plot1, 'm_r_ora_mouse.png', width = 5, height = 2)
-ggsave(plot = m_r_ora_cnetplots$plot2, 'm_r_ora_rat.png', width = 5, height = 2)
-
-
-
-png('deg_ortho.png', width = 3.6, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(deg_ortho)[1:4], comb_col = c('black'))
-dev.off()
-
-
-dnp_ortho <- list('Mouse Increase DNP'= row.names(subset(test, prop_diff > 0 & qvalue < 0.05)),
-                    'Mouse Decrease DNP' =row.names(subset(test, prop_diff < 0 & qvalue < 0.05)),
-                    'Rat Increase DNP'= row.names(subset(test1, prop_diff > 0 & qvalue < 0.05)),
-                    'Rat Decrease DNP' =row.names(subset(test1, prop_diff < 0 & qvalue < 0.05)))
-png('dnp_ortho.png', width = 3.6, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(dnp_ortho)[1:4], comb_col = c('black'))
-dev.off()
-
-dtu_ortho <- list( 'Rat DTU'= unique(subset(dexseq_rat_stageR, gene < 0.05)$geneID),
-                      'Mouse DTU'= unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID))
-
-dtu_ortho_ora <- enrich_CP(intersect(unique(subset(dexseq_rat_stageR, gene < 0.05)$geneID), unique(subset(dexseq_mouse_stageR, gene < 0.05)$geneID)), 
-                                            universe = intersect(dexseq_rat_stageR$geneID, dexseq_mouse_stageR$geneID), organisms = 'mouse')
-
-
-
-png('dtu_ortho.png', width = 2.6, height = 2.6, res = 300, units = 'in')
-
-ggvenn(
-  dtu_ortho, 
-  fill_color = c("#0073C2FF", "#EFC000FF"),
-  stroke_size = 0.5, set_name_size = 0, text_size = 5, show_percentage = F, auto_scale = T
-)
-
-dev.off()
-
-
-png('utr_deg_rat.png', width = 2.6, height = 2.6, res = 300, units = 'in')
-UpSet(make_comb_mat(utr_deg_rat)[1:3], comb_col = c('black', 'black','black'))
-dev.off()
-
-ggvenn(
-  utr_ortho, 
-  fill_color = c("#0073C2FF", "#EFC000FF","#CD534CFF",  "#868686FF"),
-  stroke_size = 0.5, set_name_size = 5, text_size = 5, show_percentage = F
-)
 
 
 ### Plotting Genes Regions From R
@@ -941,225 +561,8 @@ test_vp <- plot_range_coverage('NC_051349.1:35,194,767-35,197,558', strand = '-'
 test_vp <- plot_range_coverage('NC_000073.7:15,130,624-15,132,520', strand = '+', mouse_gtf, c('./dataset/igv/MF.sf.average.sorted.bw', './dataset/igv/MU.sf.average.sorted.bw'), log = T, cols = DOT_COLOR[c('mouseZygote', 'mouseEgg')], cell_names = c('mouseZygote', 'mouseEgg'), file_name_suffix = 'mouse')
 
 
-
-
-
 test_vp <- plot_utr_coverage('Cdc25a', utr_res = rat_dapars_sf_st25$gene_res, rat_gtf, c('./dataset/igv/RF.sf.average.sorted.bw', './dataset/igv/RU.sf.average.sorted.bw'), cols= c(DOT_COLOR['ratZygote'], DOT_COLOR['ratEgg']),cell_names = c('Rat Zygote', 'Rat Egg'), file_name_suffix = 'rat')
 test_vp <- plot_utr_coverage('Cnot6l', utr_res = rat_dapars_sf_st25$gene_res, rat_gtf, c('./dataset/igv/RF.sf.average.sorted.bw', './dataset/igv/RU.sf.average.sorted.bw'), cols= c(DOT_COLOR['ratZygote'], DOT_COLOR['ratEgg']),cell_names = c('Rat Zygote', 'Rat Egg'), file_name_suffix = 'rat', loci = 'NC_051349.1:13495326-13502511')
 test_vp <- plot_utr_coverage('Nek7', utr_res = mouse_dapars_sf_st25$gene_res, mouse_gtf, c('./dataset/igv/MF.sf.average.sorted.bw', './dataset/igv/MU.sf.average.sorted.bw'), cols= c(DOT_COLOR['mouseZygote'], DOT_COLOR['mouseEgg']),cell_names = c('Mouse Zygote', 'Mouse Egg'), file_name_suffix = 'mouse')
 test_vp <- plot_utr_coverage('Btg4', utr_res = mouse_dapars_sf_st25$gene_res, mouse_gtf, c('./dataset/igv/MF.sf.average.sorted.bw', './dataset/igv/MU.sf.average.sorted.bw'), cols= c(DOT_COLOR['mouseZygote'], DOT_COLOR['mouseEgg']),cell_names = c('Mouse Zygote', 'Mouse Egg'), file_name_suffix = 'mouse')
-
-
-
-
-# Comparisons with previous studies on ZGA in mice
-## Park, 2013, 2015 DBMTEE
-park_data <- do.call(rbind, lapply(1:25,FUN = function(x){
-  df <- read.csv(paste('~/Downloads/tables/hclust_result/CLS_norm_',x,'.dat', sep = ''), sep = '\t', skip = 1);
-  df$clust <- x
-  if(x %in% c(1,2,4,12,13,17,18,19,20)){
-    df$pattern <- 'maternal'
-  }else if(x %in% c(5,6,7,8,9,10,11,14,22,23)){
-    df$pattern <- 'mZGA'
-  }else{
-    df$pattern <- 'Other'
-  }
-  df}))
-
-common_genes_park <- intersect(row.names(mast_res$mouseEgg_v_mouseZygote$DESig), row.names(park_data))
-park_data_sub <- park_data[common_genes_park,]
-mast_data_sub <- mast_res$mouseEgg_v_mouseZygote$DESig[common_genes_park,]
-
-dnp_ortho <- list('Our data mZGA'= row.names(subset(mast_data_sub, Log2FC > 1 )),
-                  'Our data maternal' =row.names(subset(mast_data_sub, Log2FC < -1)),
-                  'DMTEE Maternal'= row.names(subset(park_data_sub, pattern == 'maternal')),
-                  'DMTEE mZGA ' =row.names(subset(park_data_sub, pattern == 'mZGA')))
-UpSet(make_comb_mat(dnp_ortho )[1:4], comb_col = c('black'))
-
-
-
-######Intergenic and close-to-gene reads from QoRTs
-mouse_intergenic <- lapply(list.files('./dataset/mouse_data/QCData/hisat/'), function(x){
-  df <- read.csv(paste('./dataset/mouse_data/QCData/hisat/', x, 'QC.geneCounts.detailed.txt.gz', sep ='/'), header = T, sep = '\t', row.names = 1)
-  df$far_AMBIG.. <- as.numeric(str_remove_all(df$far_AMBIG..,  "[()]"))
-  df
-})
-names(mouse_intergenic) <- list.files('./dataset/mouse_data/QCData/hisat/')
-
-
-mouse_qorts_gene <- do.call(cbind, lapply(mouse_intergenic, function(x){x[,'COUNT']}))
-mouse_close_ig <- do.call(cbind, lapply(mouse_intergenic, function(x){x[,'nearby']}))
-row.names(mouse_close_ig) <- row.names(mouse_intergenic$MF1)
-mouse_far_ig <- do.call(cbind, lapply(mouse_intergenic,function(x){x[,'far']}))
-row.names(mouse_far_ig) <- row.names(mouse_intergenic$MF1)
-mouse_far_ig_amb <- do.call(cbind, lapply(mouse_intergenic,function(x){x[,'far_AMBIG..']}))
-mouse_qorts_intron <- do.call(cbind, lapply(mouse_intergenic, function(x){x[,'intronic']}))
-row.names(mouse_qorts_intron) <- row.names(mouse_intergenic$MF1)
-
-intersect(row.names(mouse_qorts_intron), row.names(mouse_intron$unspliced))
-
-
-
-rat_intergenic <- lapply(list.files('./dataset/rat_data/QCData/hisat/'), function(x){
-  df <- read.csv(paste('./dataset/rat_data/QCData/hisat/', x, 'QC.geneCounts.detailed.txt.gz', sep ='/'), header = T, sep = '\t', row.names = 1)
-  df$far_AMBIG.. <- as.numeric(str_remove_all(df$far_AMBIG..,  "[()]"))
-  df
-})
-names(rat_intergenic) <- list.files('./dataset/rat_data/QCData/hisat/')
-
-rat_close_ig <- do.call(cbind, lapply(rat_intergenic, function(x){x[,'nearby']}))
-rat_far_ig <- do.call(cbind, lapply(rat_intergenic,function(x){x[,'far']}))
-rat_far_ig_amb <- do.call(cbind, lapply(rat_intergenic,function(x){x[,'far_AMBIG..']}))
-rat_qorts_intron <- do.call(cbind, lapply(rat_intergenic, function(x){x[,'intronic']}))
-
-## Intergenic from mostly 1000bp segments in intergenic regions
-
-
-rat_hisat_intergenic <- read.csv('./dataset/rat_intergenic.hisat.ct.txt', row.names = 1, header =T, sep = '\t')
-colnames(rat_hisat_intergenic) <- sapply(strsplit(colnames(rat_hisat_intergenic), '_'), function(x){x[1]})
-mouse_hisat_intergenic <- read.csv('./dataset/mouse_intergenic.hisat.ct.txt', row.names = 1, header =T, sep = '\t')
-colnames(mouse_hisat_intergenic) <- sapply(strsplit(colnames(mouse_hisat_intergenic), '_'), function(x){x[1]})
-
-
-rat_hisat_intergenic1 <- read.csv('./dataset/mouse_data/rat_intergenic_1000.hisat.ct.txt', row.names = 1, header =T, sep = '\t')
-colnames(rat_hisat_intergenic1) <- sapply(strsplit(colnames(rat_hisat_intergenic1), '_'), function(x){x[1]})
-mouse_intergenic1 <- read_htseq_intergenic(samples = colnames(mouse$ct$bio), cov_thresh = 0)
-rat_intergenic1 <- read_htseq_intergenic('./dataset/mouse_data/rat_intergenic_1000.hisat.ct.txt', samples = colnames(rat$ct$bio), 0)
-
-
-rat_intergenic1$df %>% melt('cellType') %>% ggbarplot( x = "variable", y = "value",color = "cellType",fill='cellType', add.params = list(color = 'black'), palette = 'rickandmorty', add = "mean_se",position = position_dodge(0.8))+ 
-  stat_compare_means(aes(group = cellType), method = 't.test', label = "p.signif", label.y = c(5000,4000,8000,8000,3000,20000))+xlab('Location')+ylab('Number of Regions')
-
-
-rat_intergenic1$df %>% melt('cellType') %>% ggbarplot( x = "variable", y = "value",color = "cellType",fill='cellType', add.params = list(color = 'black'), palette = 'rickandmorty', add = "mean_se",position = position_dodge(0.8))+ 
-  stat_compare_means(aes(group = cellType), method = 't.test', label = "p.signif", label.y = c(5000,4000,8000,8000,3000,20000))+xlab('Location')+ylab('Number of Regions')
-
-
-
-
-
-read_htseq_intergenic <- function(fn='./dataset/mouse_data/mouse_intergenic_1000.hisat.ct.txt', ct, meta, cov_thresh = 5){
-  samples = colnames(ct)
-  
-  intergenic <- read.csv(fn, row.names = 1, header =T, sep = '\t')
-  intergenic1 <- intergenic[-c(1:5),]
-  intergenic1_u <- intergenic1[, grepl('.u.', colnames(intergenic1))]
-  intergenic1_n <- intergenic1[, grepl('int_n', colnames(intergenic1))]
-  intergenic1_s <- intergenic1[, grepl('int_s', colnames(intergenic1))]
-  colnames(intergenic1_u) <- sapply(strsplit(colnames(intergenic1_n), '_'), function(x){x[1]})
-  colnames(intergenic1_n) <- sapply(strsplit(colnames(intergenic1_n), '_'), function(x){x[1]})
-  colnames(intergenic1_s) <- sapply(strsplit(colnames(intergenic1_n), '_'), function(x){x[1]})
-  intergenic1_u <- intergenic1_u[,samples]
-  intergenic1_s <- intergenic1_s[,samples]
-  intergenic1_n <- intergenic1_n[,samples]
-  u_1k = grepl('_u_0', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) == 3
-  
-  d_1k = grepl('_d_0', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) == 3
-  
-  s_1k = grepl('_0', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) > 3
-  
-  u_2to10k = grepl('_u', row.names(intergenic1)) & !grepl('_0', row.names(intergenic1)) & !grepl('far', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) == 3
-  d_2to10k = grepl('_d', row.names(intergenic1)) & !grepl('_0', row.names(intergenic1)) & !grepl('_far', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) == 3
-  
-  s_2to10k = !grepl('_0', row.names(intergenic1)) & !grepl('far', row.names(intergenic1)) & sapply(strsplit(row.names(intergenic1), '_'), length) > 3
-  
-  far = grepl('_far', row.names(intergenic1)) 
-  
-  num_genes = colSums(ct > 0)
-  print(num_genes)
-  num_reads = colSums(intergenic1_u)
-  print(num_reads)
-  
-  norm_df =data.frame(row.names = colnames(intergenic1_u), 
-                      up1k = colSums(intergenic1_u[u_1k,] > cov_thresh)/num_genes,
-                      down1k = colSums(intergenic1_u[d_1k,] > cov_thresh)/num_genes,
-                      u_2to10k = colSums(intergenic1_u[u_2to10k,] > cov_thresh)*100/num_reads,
-                      d_2to10 = colSums(intergenic1_u[d_2to10k,] > cov_thresh)*100/num_reads,
-                      s_1k = colSums(intergenic1_u[s_1k,] > cov_thresh)/num_genes,
-                      far = colSums(intergenic1_u[far,] > cov_thresh)*1000/num_reads,
-                      extend_u = colSums((intergenic1_n[u_1k,] - intergenic1_s[u_1k,]) > cov_thresh)/num_genes,
-                      extend_d = colSums((intergenic1_n[d_1k,] - intergenic1_s[d_1k,]) > cov_thresh)/num_genes,
-                      cellType = meta$cellType
-  )
-  
-  df = data.frame(row.names = colnames(intergenic1_u), 
-                  up1k = colSums(intergenic1_u[u_1k,] > cov_thresh),
-                  down1k = colSums(intergenic1_u[d_1k,] > cov_thresh),
-                  u_2to10k = colSums(intergenic1_u[u_2to10k,] > cov_thresh),
-                  d_2to10 = colSums(intergenic1_u[d_2to10k,] > cov_thresh),
-                  s_1k = colSums(intergenic1_u[s_1k,] > cov_thresh),
-                  far = colSums(intergenic1_u[far,] > cov_thresh),
-                  extend_u = colSums((intergenic1_n[u_1k,] - intergenic1_s[u_1k,]) > cov_thresh),
-                  extend_d = colSums((intergenic1_n[d_1k,] - intergenic1_s[d_1k,]) > cov_thresh),
-                  all = colSums(intergenic1_u > cov_thresh),
-                  cellType = meta$cellType
-                  )
-
-  
-  small_df = data.frame(row.names = colnames(intergenic1_u), 
-                        far = colSums(intergenic1_u[far,] > cov_thresh),
-                        all = colSums(intergenic1_u > cov_thresh),
-                        cellType = meta$cellType
-  )
-  return(list(df = df, norm_df = norm_df, small_df = small_df, raw = intergenic, u=intergenic1_u, s=intergenic1_s, n=intergenic1_n, u_1k = u_1k, d_1k=d_1k, s_1k=s_1k,u_2to10k =u_2to10k,d_2to10k=d_2to10k,s_2to10k=s_2to10k,far=far ))
-
-}
-
-
-mouse_intergenic1 <- read_htseq_intergenic('./dataset/mouse_data/mouse_intergenic_500.hisat.ct.txt', ct = mouse$ct$bio, meta = mouse$meta, cov_thresh = 1)
-rat_intergenic1 <- read_htseq_intergenic('./dataset/mouse_data/rat_intergenic_500.hisat.ct.txt', ct = rat$ct$bio, meta = rat$meta, 1)
-mouse_rat_int_df <- rbind(rat_intergenic1$small_df, mouse_intergenic1$small_df)
-mouse_rat_int_df$organism <- c(rep('Rat', 25), rep('Mouse', 28))
-
-mouse_rat_int_df %>% melt(c('cellType', 'organism')) %>% ggbarplot( x = "variable", y = "value", color = "cellType",fill='cellType', facet.by = 'organism', add.params = list(color = '#ffa500'), 
-                                                                    palette = DOT_COLOR, add = "mean_se",position = position_dodge(0.8))+
-  stat_compare_means(aes(group = cellType), method = 't.test', label = "p.signif")+xlab('Location')+ylab('Number of Regions')+theme_classic2()
-ggsave('intergenic_regions.png', width = 5,height = 4)
-
-
-only_up_1000_regions = grepl('_u_0', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) == 3
-
-only_down_1000_regions = grepl('_d_0', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) == 3
-
-shared_1000_regions = grepl('_0', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) > 3
-
-close_up_regions = grepl('_u', row.names(mouse_hisat_intergenic1)) & !grepl('_0', row.names(mouse_hisat_intergenic1)) & !grepl('far', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) == 3
-close_down_regions = grepl('_d', row.names(mouse_hisat_intergenic1)) & !grepl('_0', row.names(mouse_hisat_intergenic1)) & !grepl('_far', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) == 3
-
-close_shared_regions = !grepl('_0', row.names(mouse_hisat_intergenic1)) & !grepl('far', row.names(mouse_hisat_intergenic1)) & sapply(strsplit(row.names(mouse_hisat_intergenic1), '_'), length) > 3
-
-far_regions = grepl('_far', row.names(mouse_hisat_intergenic1)) 
-
-sum(only_up_1000_regions)
-
-grepl('int_s', colnames(mouse_hisat_intergenic1)), grepl('int_n', colnames(mouse_hisat_intergenic1)), grepl('.u.', colnames(mouse_hisat_intergenic1))
-
-
-num_mouse_genes_intergenic <- colSums(mouse_hisat_intergenic1[grepl('_0', row.names(mouse_hisat_intergenic1)),] > 0)[row.names(mouse$meta)]
-num_rat_genes_intergenic <- colSums(rat_hisat_intergenic1[grepl('_0', row.names(rat_hisat_intergenic1)),] > 0)[row.names(rat$meta)]
-
-
-
-
-
-
-intergenic_num_summary <- data.frame(percentages = c(num_mouse_genes_intergenic, num_rat_genes_intergenic),
-                                 Species = c(rep('Mouse', 28), rep('Rat', 25)),
-                                 cellType = c(mouse$meta$cellType, rat$meta$cellType)) %>% group_by(cellType) %>% summarise(Num_of_genes = mean(percentages), sd_Perc = sd(percentages), Species = unique(Species))
-
-
-
-ggplot(intergenic_num_summary, aes(Species, Num_of_genes, fill = cellType)) + geom_bar(stat="identity", color="black",position=position_dodge()) + 
-  geom_errorbar(aes(ymin = Num_of_genes - sd_Perc, ymax = Num_of_genes + sd_Perc), color = '#ffa500',width = 0.2, position=position_dodge(.9))+
-  theme_classic()+scale_fill_manual(values=DOT_COLOR)+
-  annotate("text", x = 1, y = 0.023, label = "", size = 5) +annotate("text", x = 2, y = 0.025, label = "**", size = 5)+ggtitle('Upstream Intergenic Read Number of Genes')+theme(plot.title = element_text(hjust = 0.5, size = 12))
-ggsave('up_intergenic.png', width = 3,height = 2.5)
-
-
-
-
-
-
-
-
 
