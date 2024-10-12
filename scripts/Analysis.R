@@ -1,48 +1,4 @@
-require(GenomicFeatures)
-suppressPackageStartupMessages({
-  library(ComplexHeatmap)
-  library(org.Hs.eg.db)
-  library(ggrepel)
-  library(apeglm)
-  library(heatmap3)
-  library(ggplot2)
-  library(ggfortify)
-  library(stringr)
-  library(RColorBrewer)
-  library(MKmisc)
-  library(DESeq2)
-  library(reticulate)
-  library(edgeR)
-  library(GSEABase)
-  library(limma)
-  library(reshape2)
-  library(data.table)
-  library(knitr)
-  library(stringr)
-  library(rsvd)
-  library(pcaMethods)
-  library(robust)
-  library(MASS)
-  library(umap)
-  library(tximport)
-  require(ReactomePA)
-  require(clusterProfiler)
-  require(meshes)
-  library(msigdbr)
-  library(doParallel)
-  library(grid)
-  library(gridExtra)
-  library(pathview)
-  library(igraph)
-  library(ggraph)
-  library(qvalue)
-  library(ggrepel)
-  library(DRIMSeq)
-  library(ggbeeswarm)
-  library(stageR)
-  library(DEXSeq)
-  library(GenomicFeatures)
-})
+
 
 
 FILES <- 'D:/gDrive/Colon_cancer/Milciclib/'
@@ -238,35 +194,6 @@ enriched_tfs <- na.omit(c(enriched_tfs, row.names(crc$features)[match(unique(sap
 
 View(data.frame(ct_res$thresh[intersect(row.names(ct_res$thresh), enriched_tfs),]))
 
-
-
-dnp_deg_mouse <- list('ct Up DEG'= row.names(subset(ct_res$thresh, padj < 0.05 & log2FoldChange > 0)),
-                      'ct Down DEG'= row.names(subset(ct_res$thresh, padj < 0.05 & log2FoldChange < 0)),
-                      'salmon up'= row.names(subset(salmon_res$thresh, padj < 0.05 & log2FoldChange > 0)),
-                      'salmon down' =row.names(subset(salmon_res$thresh, padj < 0.05 & log2FoldChange < 0)))
-
-make_comb_mat(dnp_deg_mouse)
-UpSet(make_comb_mat(dnp_deg_mouse)[1:4], comb_col = c('black'))
-
-
-
-
-volcanoplot(mast_res$mouseEgg_v_mouseZygote$DESig, pval_col = 'Pr..Chisq.',fc = log2(2), top_genes = c('Nup37', 'Nup54', 'Obox1', 'Obox2', 'Obox5', 'Obox7', 'Nup35', 'Rpl9', 
-                                                                                                       'Rpl3', 'Rpl26', 'Rpl12', 'Rpl19', 'Rpl18', 'Rpl3','Mastl','Cdc20', 
-                                                                                                       'Cnot7','Mad2l1', 'Ube2e1','Taf6', 'Taf9','Gtf2b', 'Gtf2a2', 'Ndufc1',
-                                                                                                       'Ndufa2', 'Ndufb7','Atp5h','Atp1a1','Ndufa8','Atp5j','Ndufa3', 'Dlat', ))
-ggsave('./deg/mouse_volcano_mast.png', width = 4, height = 4)
-volcanoplot(mast_rat$ratEgg_v_ratZygote$DESig, pval_col = 'Pr..Chisq.',fc = log2(2), top_genes = c('Rps20', 'Rps2', 'Rps15', 'Rplp1','Hist2h3c2','H2ac1', 'H2ax', 'Gata3',
-                                                                                                   'Sdhc','Aco2','Idh1','Sdhd','Pdha1','Dlst','Ndufab1','Ndufc1'))
-ggsave('./deg/rat_volcano_mast.png', width = 4, height = 4)
-
-#makeDEGmaps(mouse, res = DEG$mouseEgg_v_mouseZygote, main = 'Mouse Egg vs Zygote', output_dir = './deg/mouse_deg')
-#makeDEGmaps(rat, res = DEG$ratEgg_v_ratZygote, main = 'Rat Egg vs Zygote', output_dir = './deg/rat_deg')
-
-#makeDEGmaps(mouse, res = DEG$mouseEgg_v_mouseZygote, main = 'Mouse Egg vs Zygote', output_dir = './deg/mouse_deg', individual = F)
-#makeDEGmaps(rat, res = DEG$ratEgg_v_ratZygote, main = 'Rat Egg vs Zygote', output_dir = './deg/rat_deg', individual = F)
-
-
 #### As of Jan 16th, we use DEGs from MAST, input is CPM produced by HISAT2
 #### Only protein-coding, transcribed_pseudogene and lncRNA are used
 #### genes must be expressed in 10% of either zygote or oocyte samples
@@ -274,32 +201,6 @@ ggsave('./deg/rat_volcano_mast.png', width = 4, height = 4)
 #### Genes are recorded in the vectors below
 
 
-
-#CP_Plots <- clusterProfilerPlots(DEG_ORA_expr_filt, dir = './enrichment/')
-
-#enrich_plot_grid <- function(plts, method = 'mast'){
-  #cowplot::plot_grid(cowplot::plot_grid(plts$pcnet$isotonic_sorbitol_v_AA_starvation$WKP_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()),
-                #                        plts$pcnet$isotonic_sorbitol_v_Glucose_starvation$WKP_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()), ncol = 2),
-                #  cowplot::plot_grid(plts$pcnet$isotonic_sorbitol_v_AA_starvation$KEGG_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()), 
-                #                     plts$pcnet$isotonic_sorbitol_v_Glucose_starvation$KEGG_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()), ncol = 2),
-                #  cowplot::plot_grid(plts$pcnet$isotonic_sorbitol_v_AA_starvation$GO_BP_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()), 
-                #                   plts$pcnet$isotonic_sorbitol_v_Glucose_starvation$GO_BP_ora[[method]]+theme(legend.position = "none", plot.title = element_blank()), ncol = 2), nrow = 3, labels = c('A','B','C'), hjust = c(-0.2,-0.2, -0.2), label_fontface = 'bold', label_size = 18)
-# ggsave(filename = paste('./results/Enrichment/yeast_',method,'_res.png', sep=''), width = 10, height = 15, units = 'in', dpi = 300)
-#
-
-perc_rat_genes_unspliced <- colSums(rat_intron$unspliced[rat_intron$genes,])/(colSums(rat_intron$spliced )+colSums(rat_intron$unspliced[rat_intron$genes,]))
-num_rat_genes_unspliced <- colSums(rat_intron$unspliced[rat_intron$genes,] > 0)#/(colSums(mouse_intron$spliced >0 ))#+colSums(mouse_intron$unspliced[mouse_intron$genes,]))
-
-perc_mouse_genes_unspliced <- colSums(mouse_intron$unspliced[mouse_intron$genes,])/(colSums(mouse_intron$spliced )+colSums(mouse_intron$unspliced[mouse_intron$genes,]))
-num_mouse_genes_unspliced <- colSums(mouse_intron$unspliced[mouse_intron$genes,] > 0)#/(colSums(mouse_intron$spliced >0 ))#+colSums(mouse_intron$unspliced[mouse_intron$genes,]))
-
-percentage_summary <- data.frame(percentages = c(perc_mouse_genes_unspliced, perc_rat_genes_unspliced),
-           Species = c(rep('Mouse', 28), rep('Rat', 25)),
-           cellType = c(mouse$meta$cellType, rat$meta$cellType)) %>% group_by(cellType) %>% summarise(Percentage = mean(percentages), sd_Perc = sd(percentages), Species = unique(Species))
-
-num_summary <- data.frame(num_of_Genes = c(num_mouse_genes_unspliced, num_rat_genes_unspliced),
-                                      Species = c(rep('Mouse', 28), rep('Rat', 25)),
-                                      cellType = c(mouse$meta$cellType, rat$meta$cellType)) %>% group_by(cellType) %>% summarise(Num_of_Genes = mean(num_of_Genes), sd_num = sd(num_of_Genes), Species = unique(Species))
 
 
 ggplot(percentage_summary, aes(Species, Percentage, fill = cellType)) + geom_bar(stat="identity", color="black",position=position_dodge()) + 
@@ -320,30 +221,6 @@ ggsave('number_gene_unspliced.png', width = 3,height = 2.5)
 #rat_unsplic_full_mast <- mast_diff(ct = rat_intron$unspliced[rat_intron$genes,], meta = rat$meta, control = 'ratEgg', tpm = F, nbins = 10, min_per_bin = 50, freq = 0.1, max_thres = 6, plot = T)[[1]]$DESig
 
 
-
-
-
-
-
-ggplot(data = unsplic_splic_log2FC, aes(x = x, y = y)) + 
-  geom_point()+
-  facet_wrap(~Species)+
-  theme_classic()+
-  ylab(expression('Mature Log'[2]*'FC'))+
-  xlab(expression('Nascent Log'[2]*'FC'))+
-  geom_text(data = data.frame(x = c(-2, -2), y = c(4,4), lab = paste('PCC:',c(round(cor(mouse_unsplic_mast$Log2FC, mast_res$mouseEgg_v_mouseZygote$DESig[row.names(mouse_unsplic_mast),'Log2FC'],use = 'na.or.complete', method = 'pearson'),3),
-                                                              round(cor(rat_unsplic_mast$Log2FC, mast_rat$ratEgg_v_ratZygote$DESig[row.names(rat_unsplic_mast),'Log2FC'], use = 'na.or.complete',method = 'pearson'),3)), sep = ' '),
-                                Species = c('Mouse', 'Rat')),mapping = aes(x = x, y = y, label = lab))
-ggsave('nascent_mature_log2FC.png', height = 3, width =3.5)
-
-
-  
-
-
-
-
-
-dev.off()
 
 
 
@@ -418,60 +295,70 @@ print(length(intersect(crc_prop_gene, subset(dexseq_crc_stageR, gene < 0.05)$gen
 
 # plot dexseq proportions
 
-plotDEXSeqDTU(rat_dtu$prop, 'Foxm1', rat_dtu$drimseq@samples, isProportion = T)
-plotDEXSeqDTU(mouse_dtu$prop, 'Abi3bp', mouse_drim$samps, isProportion = T)
+plotDEXSeqDTU(crc_dtu$prop, 'Foxm1', rat_dtu$drimseq@samples, isProportion = T)
+
 
 
 
 
 ##Rmats results
-
-subset_rmats_by_coverage <- function(rmats, min_cov = 20){
-  is1 <- do.call(rbind, lapply(strsplit(rmats$IJC_SAMPLE_1, ','), as.numeric))
-  is2 <- do.call(rbind, lapply(strsplit(rmats$IJC_SAMPLE_2, ','), as.numeric))
-  ss1 <- do.call(rbind, lapply(strsplit(rmats$SJC_SAMPLE_1, ','), as.numeric))
-  ss2 <- do.call(rbind, lapply(strsplit(rmats$SJC_SAMPLE_2, ','), as.numeric))
-  new_rmats <- rmats[(rowMeans(is1) > 20 | rowMeans(ss1) > 20) & (rowMeans(is2) > 20 | rowMeans(ss2) > 20),]
-  new_rmats$FDR <- p.adjust(new_rmats$PValue, 'BH')
-  new_rmats
-}
-
-
-
-rmats_read_enrich <- function(res_dir,  org = 'mouse', gs_diff = 0.2, filter_low = T, filter_thresh = 10){
-  rmats <- list()
-  rmats[['a3ss']] <- read.csv(paste(res_dir, 'A3SS.MATS.JC.txt', sep = '/'), sep = '\t', header = T, row.names = 1)
-  rmats[['a5ss']] <- read.csv(paste(res_dir, 'A5SS.MATS.JC.txt', sep = '/'), sep = '\t', header = T, row.names = 1)
-  rmats[['se']] <- read.csv(paste(res_dir, 'SE.MATS.JC.txt', sep = '/'), sep = '\t', header = T, row.names = 1)
-  rmats[['ri']] <- read.csv(paste(res_dir, 'RI.MATS.JC.txt', sep = '/'), sep = '\t', header = T, row.names = 1)
-  rmats[['mxe']] <- read.csv(paste(res_dir, 'MXE.MATS.JC.txt', sep = '/'), sep = '\t', header = T, row.names = 1)
-  rmats_gs <- list()
-  rmats_f <- list()
-  for(n in names(rmats)){
-    df <- rmats[[n]]
-    if(filter_low){
-      df <- subset_rmats_by_coverage(rmats[[n]], min_cov = filter_thresh)
-      
-    }
-    df$diff <- df$FDR < 0.05 & abs(df$IncLevelDifference) > gs_diff
-    rmats_f[[n]] <- df
-    
-    rmats_gs[[n]] <- enrich_CP(subset(df, FDR < 0.05 & abs(IncLevelDifference) > gs_diff)$GeneID, universe = df$GeneID , organisms = org, classic = T, Msig = c('H','C3-TFT:GTRD'), simple_combine = F, combine = T, full_combine = T)
-  }
-  return(list(rmats = rmats, rmats_gs = rmats_gs, rmats_f = rmats_f))
-}
-
-
 crc_rmats <- rmats_read_enrich('./dataset/gbam_splice/star_salmon/rmats/M-C/rmats_post/', 'human')
-crc_rmats_f <- rmats_read_enrich('./dataset/gbam_splice/star_salmon/rmats/M-C/rmats_post/', 'human')
-crc_rmats_5 <- rmats_read_enrich('./dataset/gbam_splice/star_salmon/rmats/M-C/rmats_post/', 'human', gs_diff = 0.5)
-crc_rmats_ora <- enrich_CP(do.call(c, lapply(crc_rmats$rmats, FUN = function(x){subset(x, FDR < 0.05 & abs(IncLevelDifference) > 0.2)$GeneID})),
-                           universe = do.call(c, lapply(crc_rmats$rmats, FUN = function(x){x$GeneID})) , organisms = 'human', classic = T, Msig = c('H','C3-TFT:GTRD', 'C3-TFT:TFT_Legacy', 'NCG'), 
-                           simple_combine = F, combine = T, full_combine = T)
-crc_rmats_ora_5 <- enrich_CP(do.call(c, lapply(crc_rmats$rmats, FUN = function(x){subset(x, FDR < 0.05 & abs(IncLevelDifference) > 0.5)$GeneID})),
-                           universe = do.call(c, lapply(crc_rmats$rmats, FUN = function(x){x$GeneID})) , organisms = 'human', classic = T, Msig = c('H','C3-TFT:GTRD', 'C3-TFT:TFT_Legacy', 'NCG'), 
+write.csv(crc_rmats$rmats_f$se, './putative_results/rmats_filtered_skipped_exons.csv', quote = F)
+write.csv(crc_rmats$rmats_f$a3ss, './putative_results/rmats_filtered_A3SS.csv', quote = F)
+write.csv(crc_rmats$rmats_f$a5ss, './putative_results/rmats_filtered_A5SS.csv', quote = F)
+write.csv(crc_rmats$rmats_f$ri, './putative_results/rmats_filtered_retained_intron.csv', quote = F)
+write.csv(crc_rmats$rmats_f$mxe, './putative_results/rmats_filtered_mixed_exons.csv', quote = F)
+
+
+full_rmats_res <- do.call(rbind.data.frame, lapply(crc_rmats$rmats_f, FUN = function(x){
+ x[,c("geneSymbol", "GeneID","splice_type", "PValue", "FDR","IncLevel1", 'IncLevel2', "IncLevelDifference", "diff",
+                            "chr", "strand",  "SJC_SAMPLE_1", "IJC_SAMPLE_1",  "SJC_SAMPLE_2", "IJC_SAMPLE_2")]
+}))
+colnames(full_rmats_res)[colnames(full_rmats_res) == 'diff'] <- 'Significant'
+
+write.csv(full_rmats_res, './putative_results/rmats_filtered_results.csv', quote = F, row.names = F)
+
+write.csv(subset(full_rmats_res, Significant), './putative_results/rmats_filtered_significant_results.csv', quote = F, row.names = F)
+
+
+rmats_summary <- do.call(rbind, lapply(crc_rmats$rmats_f, function(x) c(length(unique(subset(x, FDR < 0.05 & abs(IncLevelDifference) > 0.2)$GeneID)), 
+                                                       length(unique(x$GeneID))-length(unique(subset(x, FDR < 0.05 & abs(IncLevelDifference) > 0.2)$GeneID)))))
+colnames(rmats_summary) <- c('Significant', 'Non-significant')
+row.names(rmats_summary) <- c('A3SS', 'A5SS', 'SE', 'IR', 'MXE')
+rmats_summary <- data.frame(rmats_summary)
+rmats_summary$Splice_Type <- row.names(rmats_summary)
+rmats_summary %>% melt(id.vars = c('Splice_Type'), variable.name = 'Significant') %>% 
+  group_by(Splice_Type) %>% 
+  mutate(perc = round(100*(value/sum(value)), 2)) %>% 
+  ggplot( aes(fill=Significant, y=value, x=Splice_Type)) +scale_y_continuous()+ 
+  geom_bar(position="stack", stat="identity") +
+  paletteer::scale_fill_paletteer_d("wesanderson::Darjeeling1") +
+  ggtitle("") +
+  theme_classic() + 
+  theme(
+    legend.position = c(0.1, 1),
+    legend.justification = c("left", "top"),
+    legend.box.just = "right",
+    legend.text=element_text(size=10),
+    legend.title = element_text(size = 12),
+    legend.margin = margin(6, 10, 6, 6), 
+    axis.text.x = element_text(size=12, vjust=-0, color="black"),
+    axis.text.y = element_text(size=12, vjust=-0, color="black"),
+    axis.title.x = element_text(size=14, vjust=-0, color="black"), 
+    axis.title.y = element_text(size=14, vjust=2, color="black"))+
+  ylab('Number of Genes')+xlab('Splice Type')+
+  guides(fill=guide_legend(title=""))+geom_text(aes(label = paste0(value, ' (', perc,"%)"), y = value), position = position_stack(vjust = 0.5), size = 2.5, color = 'black')
+ggsave('./rmats_splicing_results.png', height = 3, width = 5, dpi = 300)
+
+
+crc_rmats_ora <- enrich_CP(do.call(c, lapply(crc_rmats$rmats_f, FUN = function(x){subset(x, FDR < 0.05 & abs(IncLevelDifference) > 0.2)$GeneID})),
+                           universe = do.call(c, lapply(crc_rmats$rmats_f, FUN = function(x){x$GeneID})) , organisms = 'human', classic = T, Msig = c('H','C3-TFT:GTRD'), 
                            simple_combine = F, combine = T, full_combine = T)
 
+write.csv(subset(crc_rmats_ora$combined_full@result, qvalue < 0.1), file = './rmats_ora_significant.csv', quote = F, row.names = F)
+tree_plots <- cp_tree_bar_plot(crc_rmats_ora$combined_full, crc_rmats$rmats_f)
+tree_plots$both
+ggsave('tree_plot.png', tree_plots$both, height = 5, width =6)
 #### DAPARS APA
 ## The 
 
@@ -497,27 +384,6 @@ utr_crc_sf_st25_gs <- enrich_CP(row.names(subset(crc_dapars_sf_st25$gene_res, di
 
 
 
-sample_PCA(log(rat_dapars_sf_st25$pdui_imp+1), rat$meta, umap =  T, dimension=2 ,
-           main = "PDUI Umap", labeling = F, point_size = 2, color_by = 'cellType',
-           umap.config = list(n_neighbors = 25, min_dist = 0.2, metric='cosine'))+
-            theme(axis.text.y = element_text( size = 8), axis.title.x = element_text(size = 8),
-          axis.text.x = element_text( size = 8) , axis.title.y = element_text(size = 8))+guides(color=FALSE)
-ggsave('rat_umap_DAP.png', units = 'in', dpi = 300, height = 2.5, width = 2.5)
-
-sample_PCA(log(mouse_dapars_sf_st25$pdui_imp+1), mouse$meta, umap =  T, dimension=2 ,
-           main = "PDUI Umap", labeling = F, point_size = 2, color_by = 'cellType', 
-           umap.config = list(n_neighbors = 28, min_dist = 0.4, metric='cosine'))+
-          theme(axis.text.y = element_text( size = 8), axis.title.x = element_text(size = 8),
-        axis.text.x = element_text( size = 8) , axis.title.y = element_text(size = 8))+guides(color=FALSE)
-ggsave('mouse_umap_DAP.png', units = 'in', dpi = 300, height = 2.5, width = 2.5)
-
-
-mouse_dapars_sf_st25$gene_res = mouse_dapars_sf_st25$gene_res[unique(subset(mouse_PAS_dist$PAS_motif, mean.diff < -0.2 & fdr < 0.05 & num_motif > 0)$gene_short_name),]
-
-test_cols =  rep('black', length(subset(mouse_dapars_sf_st25$gene_res, mean.diff < -0.2 & fdr < 0.05)$mean.diff))
-names(test_cols) <- row.names(subset(mouse_dapars_sf_st25$gene_res, mean.diff < -0.2 & fdr < 0.05))
-test_alpha = rep(0.3, length(subset(mouse_dapars_sf_st25$gene_res, mean.diff < -0.2 & fdr < 0.05)$mean.diff))
-names(test_alpha) <- row.names(subset(mouse_dapars_sf_st25$gene_res, mean.diff < -0.2 & fdr < 0.05))
 
 #test_cols[unique(do.call(c, lapply(utr_mouse_sf_st25_down$GO_BP_ora@result$geneID[1:40], FUN = function(x){strsplit(x,'/')[[1]]})))] <- 'red'
 #test_alpha[unique(do.call(c, lapply(utr_mouse_sf_st25_down$GO_BP_ora@result$geneID[1:40], FUN = function(x){strsplit(x,'/')[[1]]})))] <- 1

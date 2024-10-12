@@ -72,28 +72,34 @@ find_key_gs <- function(res, keys = NULL, key_length = 5, alpha = 0.1){
 
 
 
-cp_tree_ridge_plot <- function(res, n_cat = 50, nclust = 5, alpha = 0.1){
-  
+cp_tree_ridge_plot <- function(res, n_cat = 50, nclust = 5, alpha = 0.1, by_keys = NULL){
+  require(ggtree)
+  require(enrichplot)
   res@result <- subset(res@result, qvalue < alpha)
   if(sum(grepl('GO', res@result$ID))){
-    res@setType <- 'BP'
+    res@ontology <- 'BP'
+    #print(res@setType)
     res <- clusterProfiler::simplify(res)
   }
+  
   gcolors <- paletteer_d("ggsci::springfield_simpsons")[1:nclust]
+  if(!is.null(by_keys)){
   sets <- find_key_gs(res@result, keys = c('(cancer|carcinoma)', 
                                            '(cycle|mitoti|mitosi)',
                                            'HALLMARK', 'repair', 'ribos', 'death', 'RNA',
                                            'histon', 'chromat', 'methy', 'DNA',
                                            'colorec'), key_length = c(8, 7,5,2,2,2, 2, 2, 2, 2, 2, 2))
-  
-  View(res@result)
+  res@result <- res@result[sets,]
+  }
+
   res@result$Description[nchar(res@result$Description) > 60] <- res@result$ID[nchar(res@result$Description) > 60]
   
-  res@result <- res@result[sets,]
+  
   res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[1]),]
-  res <- pairwise_termsim(res)
+  res <- enrichplot::pairwise_termsim(res)
   #res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[order(res@result[x, 'qvalue'])][1]),]
   View(res@result)
+  
   res_tree <- addSmallLegend(enrichplot::treeplot(res, showCategory = min(n_cat, nrow(res@result)), 
                                 geneClusterPanel = 'pie', 
                                 cluster.params = list(method = "ward.D2", n = nclust, color = gcolors, label_words_n = 4,label_format = 25), 
@@ -103,8 +109,10 @@ cp_tree_ridge_plot <- function(res, n_cat = 50, nclust = 5, alpha = 0.1){
                                             align=TRUE, size = 2.3)+xlim(c(0,20))+scale_size(name = "number of genes",
                                                                                            range = c(1, 4)))
   tree <- res_tree
+  
   res_tree$layers[c(7,8)] <- NULL
   #res_tree$layers[c(3,4)] <- NULL
+  return(res_tree)
   res_ridge <- addSmallLegend(ridgeplot(res, showCategory = min(n_cat, nrow(res@result)))+scale_fill_viridis_c()+
     theme(axis.title.y=element_blank(),axis.text.y=element_blank())+xlim(c(-4, 4))+geom_vline(xintercept=0, linetype="dashed", color = "red")+xlab('Log2FoldChange'), pointSize = 3, textSize = 10, spaceLegend = 0.9)
   
@@ -117,6 +125,86 @@ cp_tree_ridge_plot <- function(res, n_cat = 50, nclust = 5, alpha = 0.1){
 
   
 }
+
+
+cp_tree_bar_plot <- function(res, splice_res,n_cat = 50, nclust = 5, alpha = 0.1, by_keys = NULL){
+  require(ggtree)
+  require(enrichplot)
+  res@result <- subset(res@result, qvalue < alpha)
+  if(sum(grepl('GO', res@result$ID))){
+    res@ontology <- 'BP'
+    #print(res@setType)
+    res <- clusterProfiler::simplify(res)
+  }
+  gcolors <- paletteer_d("ggsci::springfield_simpsons")[1:nclust]
+  if(!is.null(by_keys)){
+    sets <- find_key_gs(res@result, keys = c('(cancer|carcinoma)', 
+                                             '(cycle|mitoti|mitosi)',
+                                             'HALLMARK', 'repair', 'ribos', 'death', 'RNA',
+                                             'histon', 'chromat', 'methy', 'DNA',
+                                             'colorec'), key_length = c(8, 7,5,2,2,2, 2, 2, 2, 2, 2, 2))
+    res@result <- res@result[sets,]
+  }
+  
+  res@result$Description[nchar(res@result$Description) > 60] <- res@result$ID[nchar(res@result$Description) > 60]
+  res@result$Description<- str_wrap(res@result$Description, width = 30)
+  
+  res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[1]),]
+  res <- enrichplot::pairwise_termsim(res)
+  #res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[order(res@result[x, 'qvalue'])][1]),]
+  res_tree <- enrichplot::treeplot(res, showCategory = min(n_cat, nrow(res@result)), 
+                                                  geneClusterPanel = 'pie', 
+                                                  cluster.params = list(method = "ward.D2", n = nclust, color = gcolors, label_words_n = 4,label_format = 25), 
+                                                  color = NULL, offset_tiplab = 0.8, fontsize = 3)+
+                                            geom_tiplab( offset = 0.8, hjust = 0, 
+                                           show.legend = FALSE, lineheight = 0.8,
+                                           align=TRUE, size = 3)+xlim(c(0,20))+scale_size(name = "number of genes",
+                                                                                            range = c(1, 4))+
+                               guides(size = guide_legend(title='Number of Genes'))
+  
+  res_tree$data$FDR <- as.numeric(res@result[match(res_tree$data$label, res@result$Description),'qvalue'])
+  View(res_tree$data)
+  res_tree <- addSmallLegend( res_tree+new_scale_color()+
+                                geom_point(aes(x=x,y=y, color = FDR, size = count))+
+                                scale_color_viridis()+new_scale_color() , 
+                              pointSize = 3, textSize = 10, spaceLegend = 0.9)
+  sub_tree_data <- subset(res_tree$data, !is.na(label))
+  sub_tree_data$geneID <- res@result[match(sub_tree_data$label, res@result$Description),'geneID']
+  res_tree$layers[c(7,8)] <- NULL
+  res_tree$layers[c(3,4)] <- NULL
+  change_df <- data.frame(do.call(rbind,  lapply(strsplit(sub_tree_data$geneID, '/'), function(x) c(length(intersect(x, splice_res$a3ss$geneSymbol)), 
+                                                                                        length(intersect(x, splice_res$a5ss$geneSymbol)),
+                                                                                        length(intersect(x, splice_res$se$geneSymbol)),
+                                                                                        length(intersect(x, splice_res$ri$geneSymbol)),
+                                                                                        length(intersect(x, splice_res$mxe$geneSymbol))))))
+  colnames(change_df) <- c('A3SS', 'A5SS', 'SE', 'IR', 'MXE')
+  change_df$Description <- sub_tree_data$label
+  #return(change_df)
+  #res_tree$data <- cbind(res_tree$data, change_df)
+  
+  
+  bar <- addSmallLegend(change_df %>% melt(id.vars = c('Description'), variable.name = 'SpliceType') %>% 
+    ggplot( aes(fill=SpliceType, y=value, x=Description)) +scale_y_continuous(labels = scales::percent_format(scale = 100))+ coord_flip()+
+    geom_bar(position="fill", stat="identity") +
+      ggsci::scale_fill_lancet() +
+    ggtitle("") +
+    theme_classic() + 
+      theme(axis.title.y = element_blank(), 
+            axis.text.y=element_blank(),
+            axis.ticks.length.y = unit(0.2, "cm"))+
+      ylab('Splice Type Percentage')+
+      guides(fill=guide_legend(title="Splice type")), pointSize = 3, textSize = 10, spaceLegend = 0.9)
+  
+  bar$data$label <- bar$data$Description
+  #res_tree$layers[c(3,4)] <- NULL
+    #return(list(ridge = res_ridge, tree=res_tree))
+  bar_tree <- bar  %>% insert_left(res_tree, width = 2)
+  return(list(tree = res_tree, bar = bar, both = bar_tree))
+  #res_ridge  %>% insert_left(res_tree, width = 2)
+  
+
+}
+
 
 
 View(crc_rmats_f$rmats_gs$se$combined_full@result)
