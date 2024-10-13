@@ -138,6 +138,35 @@ prepareGeneFeatures <- function(cds, gtf_file = NULL, dirc = 'mouse_data',org_ty
   return(cds)
 }
 
+
+get_organism_items <- function(organisms){
+  if(organisms == 'mouse'){
+    require(org.Mm.eg.db)
+    orgdb = org.Mm.eg.db
+    orgabv = 'mmu'
+    orgname = "Mus musculus"
+  }else if(organisms == 'rat'){
+    require(org.Rn.eg.db)
+    orgdb = org.Rn.eg.db
+    orgabv = 'rno'
+    orgname = "Rattus norvegicus"
+  }
+  else if(organisms == 'celegans'){
+    require(org.Ce.eg.db)
+    orgdb = org.Ce.eg.db
+    orgabv = 'cel'
+    orgname = 'Caenorhabditis elegans'
+  }
+  else if(organisms == 'human'){
+    require(org.Hs.eg.db)
+    orgdb = org.Hs.eg.db
+    orgabv = 'hsa'
+    orgname = 'Homo sapiens'
+  }
+  return(list(orgdb = orgdb, orgkegg = orgabv, orgname = orgname))
+}
+
+
 enrich_CP <- function(ora_genes, organisms, n_type = 'ENSEMBL',universe = NULL, classic = T, GO_BP_only = F, enrich_all = T, Msig = NULL, alpha = 0.5, combine = T, simple_combine = T, full_combine = T){
   require(ReactomePA)
   require(clusterProfiler)
@@ -508,6 +537,128 @@ gse_CP <- function( organisms, logFC=NULL, n_type = 'ENSEMBL', classic = T, simp
   
   return(GSE_results)
 }
+
+addSmallLegend <- function(myPlot, pointSize = 1.5, textSize = 7, spaceLegend = 0.3) {
+  myPlot +
+    guides(shape = guide_legend(override.aes = list(size = pointSize)),
+           color = guide_legend(override.aes = list(size = pointSize))) +
+    theme(legend.title = element_text(size = textSize), 
+          legend.text  = element_text(size = textSize),
+          legend.key.size = unit(spaceLegend, "lines"))
+}
+
+custom_cnet_plot <- function(cp_res, top_n_cat = 10, category = NULL, gene_color = NULL, gene_color2 = NULL, layout = 'fr', color_cat_pval = F){
+  cp_res1 <- cp_res
+  cp_res1@result <- cp_res1@result[category,]
+  cp_res1@pvalueCutoff <- 1
+  cp_res1@qvalueCutoff <- 1
+  pal <- c(rev(c(colorRampPalette(brewer.pal(9, 'Blues'))(32)[1:16],colorRampPalette(brewer.pal(9, 'Blues'))(128)[64:128])), 
+           c(colorRampPalette(brewer.pal(9, 'Reds'))(32)[1:16],colorRampPalette(brewer.pal(9, 'Reds'))(128)[64:128]))
+  plot1 <- cnetplot( cp_res1, showCategory = top_n_cat, foldChange = gene_color, layout = layout, node_label = 'none')+
+    scale_colour_gradientn(name = expression('Log'['2']*'FC'), limits= c(-4, 4), 
+                           colours = pal, 
+                           na.value = 'black')
+  cat_df <- plot1$data[c(1:max(top_n_cat, length(category))),]
+  cat_df$qval <- cp_res@result[match(cat_df$name, cp_res@result$Description),]$qvalue
+  if(!color_cat_pval){
+    plot1 <- plot1+ggnewscale::new_scale_color() +
+      ggraph::geom_node_point(aes_(size=~size), data = cat_df, color = 'black') + 
+      scale_size(limits = c(1,150), breaks = c(10,20,40,80), range = c(1,5))
+  }
+  plot1$data$name <- stringr::str_wrap(plot1$data$name, 25)
+  plot1 <- plot1+ggraph::geom_node_text(aes_(label=~name), data = plot1$data[c(1:max(top_n_cat, length(category))),], size = 3, bg.color = "white", repel=TRUE)
+  
+  
+  if(!is.null(gene_color2)){
+    plot2 <- plot1
+    plot2$data$color[-c(1:max(top_n_cat, length(category)))] <- gene_color2[plot1$data$name[-c(1:max(top_n_cat, length(category)))]]
+    
+  }
+  if(color_cat_pval){
+    plot1 <- plot1+ggnewscale::new_scale_color() +
+      ggraph::geom_node_point(aes_(color=~qval, size=~size), data = cat_df) + 
+      scale_size(limits = c(1,150), breaks = c(10,20,40,80), range = c(1,5)) +
+      scale_colour_gradientn(name = "qvalue", colours = colorRampPalette(rev(brewer.pal(9,  'Purples')))(255)[0:200], limits= c(5e-4, 0.5), breaks = c( 5e-4, 5e-3, 5e-2, 5e-1), trans = 'log10', oob = scales::oob_squish)
+    #theme(plot.margin=unit(c(0,0,0,0),"mm"), aspect.ratio = 1)
+    if(!is.null(gene_color2)){
+      plot2 <- plot2+ggnewscale::new_scale_color() +
+        ggraph::geom_node_point(aes_(color=~qval, size=~size), data = cat_df) + 
+        scale_size(limits = c(1,150), breaks = c(10,20,40,80), range = c(1,5)) +
+        scale_colour_gradientn(name = "qvalue", colours = colorRampPalette(rev(brewer.pal(9,  'Purples')))(255)[0:200], limits= c(5e-4, 0.5), breaks = c(5e-4, 5e-3, 5e-2, 5e-1), trans = 'log10', oob = scales::oob_squish)
+      
+    }
+  }
+  return(list(plot1 = plot1, plot2 = plot2))
+}
+
+cp_tree_ridge_plot <- function(res, n_cat = 50, nclust = 5, alpha = 0.1, by_keys = NULL){
+  require(ggtree)
+  require(enrichplot)
+  res@result <- subset(res@result, qvalue < alpha)
+  if(sum(grepl('GO', res@result$ID))){
+    res@ontology <- 'BP'
+    #print(res@setType)
+    res <- clusterProfiler::simplify(res)
+  }
+  
+  gcolors <- paletteer_d("ggsci::springfield_simpsons")[1:nclust]
+  if(!is.null(by_keys)){
+    sets <- find_key_gs(res@result, keys = c('(cancer|carcinoma)', 
+                                             '(cycle|mitoti|mitosi)',
+                                             'HALLMARK', 'repair', 'ribos', 'death', 'RNA',
+                                             'histon', 'chromat', 'methy', 'DNA',
+                                             'colorec'), key_length = c(8, 7,5,2,2,2, 2, 2, 2, 2, 2, 2))
+    res@result <- res@result[sets,]
+  }
+  
+  res@result$Description[nchar(res@result$Description) > 60] <- res@result$ID[nchar(res@result$Description) > 60]
+  
+  
+  res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[1]),]
+  res <- enrichplot::pairwise_termsim(res)
+  #res@result <- res@result[tapply(res@result$ID, res@result$Description, function(x) x[order(res@result[x, 'qvalue'])][1]),]
+  View(res@result)
+  
+  res_tree <- addSmallLegend(enrichplot::treeplot(res, showCategory = min(n_cat, nrow(res@result)), 
+                                                  geneClusterPanel = 'pie', 
+                                                  cluster.params = list(method = "ward.D2", n = nclust, color = gcolors, label_words_n = 4,label_format = 25), 
+                                                  color = NULL, offset_tiplab = 0.8, fontsize = 3)+
+                               geom_tiplab(offset = 0.8, hjust = 0, 
+                                           show.legend = FALSE, 
+                                           align=TRUE, size = 2.3)+xlim(c(0,20))+scale_size(name = "number of genes",
+                                                                                            range = c(1, 4)))
+  tree <- res_tree
+  
+  res_tree$layers[c(7,8)] <- NULL
+  res_tree$layers[c(3,4)] <- NULL
+
+  res_ridge <- addSmallLegend(ridgeplot(res, showCategory = min(n_cat, nrow(res@result)))+scale_fill_viridis_c()+
+                                theme(axis.title.y=element_blank(),axis.text.y=element_blank())+xlim(c(-4, 4))+geom_vline(xintercept=0, linetype="dashed", color = "red")+xlab('Log2FoldChange'), pointSize = 3, textSize = 10, spaceLegend = 0.9)
+  
+  res_ridge$data$label <- res_ridge$data$category
+  #return(list(ridge = res_ridge, tree=res_tree))
+  ridge_tree <- res_ridge  %>% insert_left(res_tree, width = 3)
+  return(list(tree = res_tree, ridge = test_ridge, both = ridge_tree))
+  #res_ridge  %>% insert_left(res_tree, width = 2)
+  
+  
+  
+}
+
+tf_cnet_plot <- function(res, DE){
+  new_res <- res
+  sig_gs <- subset(res@result, qvalue < 0.05)
+  gs <- sig_gs$ID
+  gs_genes <- res@geneSets[gs]
+  sig_gs$core_enrichment <- do.call(rbind, lapply(gs_genes, function(x){
+    sub_DE <- DE[match(x, DE$entrez),]
+    sig_g <- paste(subset(sub_DE, padj < 0.05)$gene_short_name, collapse = '/')
+  }))
+  new_res@result <- sig_gs
+  new_res
+}
+
+
 
 
 volcanoplot <- function(res, pval_col = 'fdr', fc_col = 'Log2FC', lfcthresh = F, top_genes = NULL, alpha = 0.05, fc = log2(2), main = NULL){
