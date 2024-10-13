@@ -103,7 +103,7 @@ prev_gse <- gse_CP(logFC = sapply(row.names(prev_res), function(x){prev_res[x,'l
 
 
 
-### Using combined sets of Reactome, KEGG, GO:BP, Wikipathways and Msigdb Hallmark, TFT:GTRD and TFT_Legacy
+### Using combined sets of Reactome, KEGG, GO:BP, Wikipathways and Msigdb Hallmark, TFT:GTRD
 ct_gse <- gse_CP(logFC = subset(ct_res$lfc, !is.na(padj))$log2FoldChange, organisms = 'human', 
                  Msig = c( 'H', 'NCG' ,'C3-TFT:GTRD', 'C3-TFT:TFT_Legacy'), combine = T, simple_combine = T, classic = T, full_combine = T)
 
@@ -114,10 +114,10 @@ ct_tf_gse <- gse_CP(logFC = subset(ct_res$lfc, !is.na(padj))$log2FoldChange, org
 
 
 salmon_gse <- gse_CP(logFC = subset(salmon_res$lfc, !is.na(padj))$log2FoldChange, organisms = 'human', 
-                 Msig = c('H', 'C3-TFT:GTRD', 'C3-TFT:TFT_Legacy'), combine = T, simple_combine = T, full_combine = T)
+                 Msig = c('H', 'C3-TFT:GTRD'), combine = T, simple_combine = T, full_combine = T)
 
 salmon_tf_gse <- gse_CP(logFC = subset(salmon_res$lfc, !is.na(padj))$log2FoldChange, organisms = 'human', 
-                    Msig = c('C3-TFT:GTRD', 'C3-TFT:TFT_Legacy'), combine = T, simple_combine = F, full_combine = T, 
+                    Msig = c('C3-TFT:GTRD'), combine = T, simple_combine = F, full_combine = T, 
                     classic = F)
 
 
@@ -151,13 +151,6 @@ c_ncg <- enrichNCG(row.names(subset(ct_res$thresh, padj < 0.05)), universe = row
 
 ncg <- read.csv('~/../Downloads/NCG_cancerdrivers_annotation_supporting_evidence.tsv', sep ='\t', header = T)
 
-ggsave('./deg/mouse_gsea_ridge.png', height = 8, width =4, units = 'in')
-                                                                                                                                                                                                                                              
-custom_ridgeplot(mast_gse_rat$combined,  terms = c('GO:0016581', 'GO:0090545', 'R-RNO-73728', 'R-RNO-212300', 'GO:0030527', 
-     'rno03010', 'GO:0090092', 'rno00020','rno00280','R-RNO-927802',
-    'GO:0004930','rno01200','R-RNO-204005'), top_n = 0)+theme(plot.title = element_text(hjust = 1, size = 12), axis.text.y = element_text(face="bold", color="black", size=8))+ggtitle('GSEA of Rat DEGs')
-                                                                                                                                                                                                                                          
-ggsave('./deg/rat_gsea_ridge.png', height = 8, width =4, units = 'in')
 
 
 ### FINAL deg comes from threshold at mean expression > 2 reads across all samples and using featureCount reads
@@ -192,40 +185,45 @@ enriched_tfs <- na.omit(c(enriched_tfs, row.names(crc$features)[match(unique(sap
 
 
 
-View(data.frame(ct_res$thresh[intersect(row.names(ct_res$thresh), enriched_tfs),]))
+test_limma <- egsea_limma_obj(counts(salmon_res5$dds), colData(salmon_res5$dds), control='control')
+msiggs <- buildMSigDBIdx(
+  row.names(test_limma$E),
+  species = "Homo sapiens",
+  geneSets = "h",
+  go.part = FALSE,
+  min.size = 10
+)
+contrast.matrix = makeContrasts('grouptreated-groupcontrol',
+                                levels=test_limma$design)
+gsa = egsea(voom.results = test_limma, contrasts = contrast.matrix, gs.annots = msiggs,
+            symbolsMap = test_limma$genes, baseGSEAs =  egsea.base(), report.dir = "./egsea_res",
+            sort.by = "p.adj", num.threads = 4, report = T, interactive = T, 
+            keep.base=T, keep.set.scores = T)
 
-#### As of Jan 16th, we use DEGs from MAST, input is CPM produced by HISAT2
-#### Only protein-coding, transcribed_pseudogene and lncRNA are used
-#### genes must be expressed in 10% of either zygote or oocyte samples
-#### No other filtering is done through MAST
-#### Genes are recorded in the vectors below
-
-
-
-
-ggplot(percentage_summary, aes(Species, Percentage, fill = cellType)) + geom_bar(stat="identity", color="black",position=position_dodge()) + 
-  geom_errorbar(aes(ymin = Percentage - sd_Perc, ymax = Percentage + sd_Perc), color = '#ffa500',width = 0.2, position=position_dodge(.9))+
-  theme_classic()+scale_fill_manual(values=DOT_COLOR)+
-  annotate("text", x = 1, y = 0.023, label = "", size = 5) +annotate("text", x = 2, y = 0.025, label = "**", size = 5)+ggtitle('Unspliced Read %')+theme(plot.title = element_text(hjust = 0.5, size = 12))
-ggsave('percent_gene_unspliced.png', width = 3,height = 2.5)
-
-ggplot(num_summary, aes(Species, Num_of_Genes, fill = cellType)) + geom_bar(stat="identity", color="black",position=position_dodge()) + 
-  geom_errorbar(aes(ymin = Num_of_Genes - sd_num, ymax = Num_of_Genes + sd_num), color = '#ffa500',width = 0.2, position=position_dodge(.9))+
-  theme_classic()+scale_fill_manual(values=DOT_COLOR)+
-  annotate("text", x = 1, y = 2900, label = "*", size = 5) +annotate("text", x = 2, y = 2900, label = "**", size = 5)+ggtitle('# Genes w Nascent Reads')+theme(plot.title = element_text(hjust = 0.5, size = 12))
-ggsave('number_gene_unspliced.png', width = 3,height = 2.5)
-
-
-#mouse_unsplic_full_mast <- mast_diff(ct = mouse_intron$unspliced[mouse_intron$genes,], meta = mouse$meta, control = 'mouseEgg', tpm = F, nbins = 10, min_per_bin = 50, freq = 0.1, max_thres = 6, plot = T, min_cell_grp = 5, min_cell = 8)[[1]]$DESig
-
-#rat_unsplic_full_mast <- mast_diff(ct = rat_intron$unspliced[rat_intron$genes,], meta = rat$meta, control = 'ratEgg', tpm = F, nbins = 10, min_per_bin = 50, freq = 0.1, max_thres = 6, plot = T)[[1]]$DESig
-
-
-
-
-
-
-
+gsa_table <- gsa@results$h$test.results$`grouptreated-groupcontrol`
+gsa_table$GeneSet <- row.names(gsa_table)
+gsa_table$Change <- sapply(gsa_table$direction, function(x) ifelse(x == 1, 'upregulation', 'downregulation'))
+gsa_table$GeneSet <- factor(gsa_table$GeneSet, levels =  -log10(gsa_table$p.adj))
+gsa_table <- transform(gsa_table, 
+                       GeneSet = reorder(GeneSet, -log10(p.adj)))
+ggplot(gsa_table[1:20,], aes(GeneSet, -log10(p.adj), fill = Change)) + 
+  geom_bar(stat="identity", color="black",position=position_dodge()) +
+  coord_flip()+
+  theme_classic()+scale_fill_manual(values=c('upregulation' = '#f05c3b', 'downregulation' = '#1a9993'))+
+  xlab('Human Hallmark Gene Set')+
+  ylab(expression('-Log'[10]~'FDR'))+
+  theme(
+    legend.position = c(1.03, 0.5),
+    legend.justification = c("right"),
+    legend.box.just = "right",
+    legend.text=element_text(size=7),
+    legend.title = element_blank(),
+    legend.margin = margin(1, 1, 1, 1), 
+    axis.text.x = element_text(size=10, vjust=-0, color="black"),
+    axis.text.y = element_text(size=8, vjust=0.5, color="black"),
+    axis.title.x = element_text(size=14, vjust=-0, color="black"), 
+    axis.title.y = element_text(size=15, vjust=2, color="black"))+geom_hline(yintercept = c(-log10(0.05)), color = 'black', linetype = 'dashed', linewidth = 1.5)
+ggsave('egsea_enrichment_H.png', width =6,height =5)
 
 
 
